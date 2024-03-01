@@ -4,7 +4,7 @@ const app = express();
 const port = 3000;
 
 const dotenv = require("dotenv");
-dotenv.config({ path: 'Backend/.env' });
+dotenv.config({ path: '.env' });
 
 const querystring = require('querystring');
 const request = require('request'); 
