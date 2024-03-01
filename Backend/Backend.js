@@ -14,7 +14,7 @@ const fetch = require('node-fetch');
 const CLIENT_ID  = process.env.CLIENT_ID;
 const CLIENT_SECRET  = process.env.CLIENT_SECRET;
 const PLAYLIST_ID = process.env.PLAYLIST_ID;
-const redirect_uri = 'http://localhost:3000/callback';
+const redirect_uri = 'https://spotify-collab-backend.onrender.com/callback';
 
 console.log(CLIENT_ID,CLIENT_SECRET)
 
