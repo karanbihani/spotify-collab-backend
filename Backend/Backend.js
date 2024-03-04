@@ -1,4 +1,3 @@
-const ReadWrite = require("./ReadWrite");
 const express = require("express");
 const app = express();
 const port = 3000;
@@ -8,18 +7,23 @@ dotenv.config({ path: '.env' });
 
 const querystring = require('querystring');
 const request = require('request'); 
+const pg = require('pg');
 
-const fetch = require('node-fetch');
-
+const CONSTRING = process.env.CONSTRING;
 const CLIENT_ID  = process.env.CLIENT_ID;
 const CLIENT_SECRET  = process.env.CLIENT_SECRET;
 const PLAYLIST_ID = process.env.PLAYLIST_ID;
 const redirect_uri = 'http://localhost:3000/callback';
 
-console.log(CLIENT_ID,CLIENT_SECRET)
+const ReadWrite = require("./ReadWrite");
+const { checkPrime } = require("crypto");
+
+console.log(CLIENT_ID, CLIENT_SECRET, PLAYLIST_ID, CONSTRING);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const client = new pg.Client(CONSTRING);
 
 var access_token;
 var refresh_token;
@@ -36,20 +40,30 @@ function generateRandomString(length) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
-}
+};
 
 function convertToSpotifyURI(url) {
   const trackID = url.split('/').pop().split('?')[0];
   return `spotify:track:${trackID}`;
+};
+
+async function connectCLient(){
+  try{
+    await client.connect();
+    console.log("connected")
+  }
+  catch(err){
+    console.log("Could not connect:", err)
+  }
+
 }
 
 // Routes:
-app.get("/" , (req, res)=>{
+app.get("/", (req, res)=>{
   res.send("Hi")
-})
+});
 
 app.get('/login', function(req, res) {
-
   var state = generateRandomString(16);
   var scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
 
@@ -79,7 +93,7 @@ const getRefreshToken =  () => {
     json: true
   };
   return(refreshTokenRequest)
-}
+};
 
 const accessTokenRefresher = ()=>{
   a = setInterval(()=>{
@@ -90,6 +104,7 @@ const accessTokenRefresher = ()=>{
       console.log("Timer Reached 0");
 
       console.log("Sending post request");
+
       request.post(getRefreshToken(), function(error, response, body) {
         if (!error && response.statusCode === 200) {
           access_token = body.access_token
@@ -103,9 +118,9 @@ const accessTokenRefresher = ()=>{
     }
 
   }, 1000)
-}
+};
 
-app.get('/callback', function (req, res) {
+app.get('/callback', async function (req, res) {
   var code = req.query.code || null;
   var state = req.query.state || null;
   
@@ -115,7 +130,8 @@ app.get('/callback', function (req, res) {
             error: 'state_mismatch'
         }));
     } else {
-    var authOptions = {
+      await connectCLient();
+      var authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         form: {
             code: code,
@@ -151,30 +167,36 @@ app.get('/callback', function (req, res) {
 
 app.post("/add", (req, res)=>{
   console.log(req.body)
-  var {url} = req.body;
+  var {url, user_access_token} = req.body;
   var uri = convertToSpotifyURI(url);
-  res.send("WORKED");
-  ReadWrite.Write(`${uri}`);
+  
+  // checkInfo : 
+  // 0 if correct
+  // 1 if duplicate uri
+  // 2 if user rate limited
+
+  temp = ReadWrite.checkInfo(client, uri, user_access_token);
+  if( temp === 1){
+    console.log("already exits")
+  }
+  else if(temp === 2){
+    console.log("Slow down send request after some time (not been 5 mins since last request)")
+  }
+  else{
+    res.send("WORKED");
+    ReadWrite.Write(client, `${uri}`, user_access_token);
+  }
 })
 
 const startAddingSpotifySongs = (access_token)=>{  
-  addSpotifySongs =  setInterval(()=>{
-  songList = ReadWrite.Read();
+  addSpotifySongs =  setInterval(async ()=>{
+  songList = await ReadWrite.Read(client);
 
-  if (songList[0] ===""){
-    songList.splice(0,1);
-    console.log(songList);
-  }
-  
-  if(songList[songList.length-1]===""){
-    console.log("last el ''");
-    songList.splice(songList.length-1,1);
-    console.log(songList);
-  }
-
-  if (songList.length === 0) {
-    console.log("is 0\n",songList[0], songList.length);
-  }
+  console.log(songList)
+  // if (songList.length === 0) {
+  //   console.log("is 0\n",songList, songList.length);
+  // }
+  if(1===0){}
   else{
     var authOptions = {
       url: `https://api.spotify.com/v1/playlists/${PLAYLIST_ID}/tracks`,
@@ -189,8 +211,7 @@ const startAddingSpotifySongs = (access_token)=>{
 
     console.log(authOptions.headers, authOptions.body.uris)
     console.log(songList)
-  
-    console.log("not 0")
+
     request.post(authOptions, function (error, response, body) {
       if (!error && response.statusCode === 200) {
           var snapshot_id = body.snapshot_id; 
@@ -201,31 +222,8 @@ const startAddingSpotifySongs = (access_token)=>{
       }
     });    
   }
-  
   }, 1000*delay)
 }
-//Testing
-
-async function getProfile(accessToken) {
-  const response = await fetch('https://api.spotify.com/v1/me', {
-    headers: {
-      Authorization: 'Bearer ' + accessToken
-    }
-  });
-
-  const data = await response.json();
-  return data;
-}
-
-app.get('/profile', async (req, res) => {
-  console.log(access_token, expires_in,refresh_token)
-  try {
-    const profileData = await getProfile(access_token);
-    res.json(profileData);
-  } catch (error) {
-    res.status(500).send('Error: ' + error.message);
-  }
-});
 
 app.listen(port, ()=>{
     console.log(`Example app listening on port: ${port}`)
