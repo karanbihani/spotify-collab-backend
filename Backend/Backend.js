@@ -8,6 +8,7 @@ dotenv.config({ path: '.env' });
 const querystring = require('querystring');
 const request = require('request'); 
 const pg = require('pg');
+const cors = require('cors');
 
 const CONSTRING = process.env.CONSTRING;
 const CLIENT_ID  = process.env.CLIENT_ID;
@@ -22,6 +23,8 @@ console.log(CLIENT_ID, CLIENT_SECRET, PLAYLIST_ID, CONSTRING);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.options('*', cors());
 
 const client = new pg.Client(CONSTRING);
 
@@ -59,15 +62,13 @@ async function connectCLient(){
 }
 
 // Routes:
-app.get("/", (req, res)=>{
-  res.send("Hi")
-});
 
-app.get('/login', function(req, res) {
+
+app.get('/', function(req, res) {
   var state = generateRandomString(16);
   var scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
 
-  console.log("login")
+  // console.log("login")
 
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -75,7 +76,7 @@ app.get('/login', function(req, res) {
       client_id: `${CLIENT_ID}`,
       scope: scope,
       redirect_uri: redirect_uri,
-      state: state
+      state: state 
     }));
 });
 
@@ -101,9 +102,9 @@ const accessTokenRefresher = ()=>{
     // console.log(expires_in);
 
     if (expires_in<=0){
-      console.log("Timer Reached 0");
+      // console.log("Timer Reached 0");
 
-      console.log("Sending post request");
+      // console.log("Sending post request");
 
       request.post(getRefreshToken(), function(error, response, body) {
         if (!error && response.statusCode === 200) {
@@ -112,7 +113,7 @@ const accessTokenRefresher = ()=>{
           if(body.refresh_token){
             refresh_token = body.refresh_token;
           }
-          console.log(access_token, refresh_token);
+          // console.log(access_token, refresh_token);
         }
       });
     }
@@ -166,7 +167,7 @@ app.get('/callback', async function (req, res) {
 // Adding songs to playlist
 
 app.post("/add", (req, res)=>{
-  console.log(req.body)
+  console.log(req.body.url)
   var {url, user_access_token} = req.body;
   var uri = convertToSpotifyURI(url);
   
@@ -209,7 +210,7 @@ const startAddingSpotifySongs = (access_token)=>{
       json: true
     };
 
-    console.log(authOptions.headers, authOptions.body.uris)
+    // console.log(authOptions.headers, authOptions.body.uris)
     console.log(songList)
 
     request.post(authOptions, function (error, response, body) {
