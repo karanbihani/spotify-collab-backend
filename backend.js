@@ -8,6 +8,7 @@ dotenv.config({ path: '.env' });
 const querystring = require('querystring');
 const request = require('request'); 
 const pg = require('pg');
+const cors = require("cors");
 
 const CONSTRING = process.env.CONSTRING;
 const CLIENT_ID  = process.env.CLIENT_ID;
@@ -15,13 +16,13 @@ const CLIENT_SECRET  = process.env.CLIENT_SECRET;
 const PLAYLIST_ID = process.env.PLAYLIST_ID;
 const redirect_uri = 'http://localhost:3000/callback';
 
-const ReadWrite = require("./ReadWrite");
-const { checkPrime } = require("crypto");
+const ReadWrite = require("./utils/data");
 
 console.log(CLIENT_ID, CLIENT_SECRET, PLAYLIST_ID, CONSTRING);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 const client = new pg.Client(CONSTRING);
 
@@ -55,7 +56,6 @@ async function connectCLient(){
   catch(err){
     console.log("Could not connect:", err)
   }
-
 }
 
 // Routes:
@@ -101,9 +101,9 @@ const accessTokenRefresher = ()=>{
     // console.log(expires_in);
 
     if (expires_in<=0){
-      console.log("Timer Reached 0");
+      // console.log("Timer Reached 0");
 
-      console.log("Sending post request");
+      // console.log("Sending post request");
 
       request.post(getRefreshToken(), function(error, response, body) {
         if (!error && response.statusCode === 200) {
@@ -165,9 +165,10 @@ app.get('/callback', async function (req, res) {
 
 // Adding songs to playlist
 
-app.post("/add", (req, res)=>{
+app.post("/add", async (req, res)=>{
   console.log(req.body)
-  var {url, user_access_token} = req.body;
+  var {url, email} = req.body;
+  console.log(email);
   var uri = convertToSpotifyURI(url);
   
   // checkInfo : 
@@ -175,16 +176,19 @@ app.post("/add", (req, res)=>{
   // 1 if duplicate uri
   // 2 if user rate limited
 
-  temp = ReadWrite.checkInfo(client, uri, user_access_token);
+  var temp = await ReadWrite.checkInfo(client, uri, email);
+
+  console.log(temp)
+
   if( temp === 1){
     console.log("already exits")
   }
   else if(temp === 2){
     console.log("Slow down send request after some time (not been 5 mins since last request)")
   }
-  else{
+  else{ 
     res.send("WORKED");
-    ReadWrite.Write(client, `${uri}`, user_access_token);
+    ReadWrite.Write(client, `${uri}`, email);
   }
 })
 
@@ -192,7 +196,7 @@ const startAddingSpotifySongs = (access_token)=>{
   addSpotifySongs =  setInterval(async ()=>{
   songList = await ReadWrite.Read(client);
 
-  console.log(songList)
+  // console.log(songList)
   // if (songList.length === 0) {
   //   console.log("is 0\n",songList, songList.length);
   // }
@@ -209,8 +213,8 @@ const startAddingSpotifySongs = (access_token)=>{
       json: true
     };
 
-    console.log(authOptions.headers, authOptions.body.uris)
-    console.log(songList)
+    // console.log(authOptions.headers, authOptions.body.uris)
+    // console.log(songList)
 
     request.post(authOptions, function (error, response, body) {
       if (!error && response.statusCode === 200) {

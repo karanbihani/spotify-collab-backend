@@ -1,6 +1,8 @@
 // db.js
 
 const pg = require('pg');
+const dotenv = require("dotenv");
+dotenv.config({ path: '.env' });
 
 // Your PostgreSQL connection string
 const CONSTRING = process.env.CONSTRING;
@@ -17,7 +19,20 @@ function getClient() {
     return client;
 }
 
+connectClient = async(client)=>{
+    console.log("Started connecting")
+    client.connect((err) => {
+    if (err) {
+        console.error('Error connecting to PostgreSQL database:', err);
+    } else {
+        console.log('Connected to PostgreSQL database successfully');
+    }
+    });
+}
+
+
 // Export the getClient function
 module.exports = {
-    getClient: getClient
+    getClient: getClient,
+    connectClient: connectClient
 };
