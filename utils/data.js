@@ -1,3 +1,5 @@
+const DELAY = 0;
+
 async function Read(client) {
     try {
         const result = await client.query('SELECT uri FROM song_log WHERE added = FALSE');
@@ -63,10 +65,12 @@ async function checkInfo(client, uri, access_token){
         
         console.log(lastRequestTime);
 
-        const currentTime = new Date(Date.UTC());
+        const currentTime = new Date();
         // const utcDate = new Date(Date.UTC());
 
-        console.log(currentTime);
+        const londonTime = currentTime.toLocaleString("en-GB", {timeZone: "Europe/London"});
+
+        console.log(londonTime);
 
         // const timeDifferenceMinutes = (currentTime - lastRequestTime) / (1000 * 60);
 
@@ -74,7 +78,7 @@ async function checkInfo(client, uri, access_token){
 
         console.log(timeDifferenceMinutes);
 
-        if(timeDifferenceMinutes > 5){
+        if(timeDifferenceMinutes > (330+DELAY)){
             return 0;
         }
         
