@@ -1,4 +1,4 @@
-const DELAY = 5;
+const DELAY = 240;
 
 async function Read(client) {
     try {

@@ -26,18 +26,18 @@ app.use(cors());
 
 const client = new pg.Client(CONSTRING);
 
-var access_token;
-var refresh_token;
-var expires_in;
+let access_token;
+let refresh_token;
+let expires_in;
 
-var delay = 5;
+let delay = 5;
 
 // Utility:
 function generateRandomString(length) {
-    var result = '';
-    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charactersLength = characters.length;
-    for (var i = 0; i < length; i++) {
+    let result = '';
+    let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
@@ -64,8 +64,8 @@ app.get("/", (req, res)=>{
 });
 
 app.get('/login', function(req, res) {
-  var state = generateRandomString(16);
-  var scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
+  let state = generateRandomString(16);
+  let scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
 
   console.log("login")
 
@@ -80,7 +80,7 @@ app.get('/login', function(req, res) {
 });
 
 const getRefreshToken =  () => {
-  var refreshTokenRequest = {
+  let refreshTokenRequest = {
     url: 'https://accounts.spotify.com/api/token',
     form: {
       grant_type: 'refresh_token',
@@ -121,8 +121,8 @@ const accessTokenRefresher = ()=>{
 };
 
 app.get('/callback', async function (req, res) {
-  var code = req.query.code || null;
-  var state = req.query.state || null;
+  let code = req.query.code || null;
+  let state = req.query.state || null;
   
   if (state === null) {
     res.redirect('/#' +
@@ -131,7 +131,7 @@ app.get('/callback', async function (req, res) {
         }));
     } else {
       await connectCLient();
-      var authOptions = {
+      let authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         form: {
             code: code,
@@ -167,16 +167,16 @@ app.get('/callback', async function (req, res) {
 
 app.post("/add", async (req, res)=>{
   console.log(req.body)
-  var {url, email} = req.body;
+  let {url, email} = req.body;
   console.log(email);
-  var uri = convertToSpotifyURI(url);
+  let uri = convertToSpotifyURI(url);
   
   // checkInfo : 
   // 0 if correct
   // 1 if duplicate uri
   // 2 if user rate limited
 
-  var temp = await ReadWrite.checkInfo(client, uri, email);
+  let temp = await ReadWrite.checkInfo(client, uri, email);
 
   console.log(temp)
 
@@ -202,7 +202,7 @@ const startAddingSpotifySongs = (access_token)=>{
   // }
   if(1===0){}
   else{
-    var authOptions = {
+    let authOptions = {
       url: `https://api.spotify.com/v1/playlists/${PLAYLIST_ID}/tracks`,
       body: {
           uris: songList
@@ -218,7 +218,7 @@ const startAddingSpotifySongs = (access_token)=>{
 
     request.post(authOptions, function (error, response, body) {
       if (!error && response.statusCode === 200) {
-          var snapshot_id = body.snapshot_id; 
+          let snapshot_id = body.snapshot_id; 
           
           console.log("Added!!\n", snapshot_id)
       } else {
