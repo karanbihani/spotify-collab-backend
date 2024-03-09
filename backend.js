@@ -229,6 +229,6 @@ const startAddingSpotifySongs = (access_token)=>{
   }, 1000*delay)
 }
 
-app.listen(port, ()=>{
-    console.log(`Example app listening on port: ${port}`)
-})
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Example app listening on port: ${port}`);
+});
