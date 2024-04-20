@@ -151,7 +151,7 @@ app.get('/callback', async function (req, res) {
             refresh_token = body.refresh_token;
             expires_in = body.expires_in;
             
-            res.send('Authentication successful! Access token: ' + access_token +"<br>"+ expires_in +"<br>"+refresh_token);
+            res.send('Authentication successful! Access token: PRIVATE'  +"<br>"+ expires_in +"<br>");
             console.log("Access Token:\n", access_token)
             startAddingSpotifySongs(access_token);
             accessTokenRefresher();
@@ -181,13 +181,15 @@ app.post("/add", async (req, res)=>{
   console.log(temp)
 
   if( temp === 1){
-    console.log("already exits")
+    console.log("already exits");
+    res.status(409).send({ message: "The song is already in the playlist." });
   }
   else if(temp === 2){
     console.log("Slow down send request after some time (not been 5 mins since last request)")
+    res.status(429).send({ message: "You are being rate limited. Please try again later." });
   }
   else{ 
-    res.send("WORKED");
+    res.status(200).send({ message: "Song added to the playlist." });
     ReadWrite.Write(client, `${uri}`, email);
   }
 })
